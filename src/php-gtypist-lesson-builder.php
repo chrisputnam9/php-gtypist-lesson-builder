@@ -22,8 +22,9 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
     protected $___create = [
         "Create a GNU Typist lesson from a text file",
         ["Path to text file to use as input", "string"],
+        ["Where to output gtypist file - defaults to name and location based on input file", "string"],
     ];
-	public function create($input)
+	public function create($input, $output=null)
     {
         if (!is_file($input)) {
             $this->error("Input file does not exist ($input)");
@@ -39,4 +40,5 @@ if (empty($__no_direct_run__))
     Php_Gtypist_Lesson_Builder::run($argv);
 }
 
-// Note: leave this for packaging ?>
+// phpcs:disable PSR2.Files.ClosingTag
+// Note: we want this for our simplistic packaging approach ?>
