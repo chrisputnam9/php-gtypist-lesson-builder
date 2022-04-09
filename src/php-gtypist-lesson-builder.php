@@ -26,12 +26,37 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
     ];
 	public function create($input, $output=null)
     {
-        if (!is_file($input)) {
-            $this->error("Input file does not exist ($input)");
-        }
+		$this->init_files($input, $output);
 
-		$this->output("Ready to process $input");
+		$this->output("Ready to process '$this->input_path' and save to '$this->output_path'");
     }
+
+	// Manage input and output files
+	private $input_handle = null;
+	private $output_handle = null;
+	private $input_path = null;
+	private $output_path = null;
+	private function init_files($input_path, $output_path=null) {
+
+        if (!is_file($input_path)) {
+            $this->error("Input file does not exist ($input_path)");
+        }
+		$this->input_path = $input_path;
+
+		$this->input_handle = fopen($input_path, 'r');
+	}
+
+	protected function _shutdown($arglist) {
+
+		if (!is_null($this->input_handle)) {
+			fclose($this->input_handle);
+		}
+
+		if (!is_null($this->output_handle)) {
+			fclose($this->output_handle);
+		}
+
+	}
 }
 
 if (empty($__no_direct_run__))
