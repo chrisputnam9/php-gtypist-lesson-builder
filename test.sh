@@ -1,4 +1,5 @@
 #!/bin/bash
 
-./php-gtypist-lesson-builder create ~/dev/personal/gtypist-scripture-bible/build/script-poc/john.txt
+clear
+./php-gtypist-lesson-builder create ~/dev/personal/gtypist-scripture-bible/build/script-poc/john_chapter_1.txt
 

@@ -24,11 +24,21 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
         ["Path to text file to use as input", "string"],
         ["Where to output gtypist file - defaults to name and location based on input file", "string"],
     ];
-	public function create($input, $output=null)
+	public function create($input, $title=null, $output=null)
     {
 		$this->init_files($input, $output);
 
-		$this->output("Ready to process '$this->input_path' and save to '$this->output_path'");
+		if(empty($title)) {
+			$title = basename($this->input_path);
+			$title = preg_replace('/\.[^.]{2,4}$/i', '', $title);
+			$title = preg_replace('/[-_]+/', ' ', $title);
+			$title = ucwords($title);
+		}
+
+		$this->output('Ready to process:');
+		$this->output(" - input: $this->input_path");
+		$this->output(" - title: $title");
+		$this->output(" - output: $this->output_path");
     }
 
 	// Manage input and output files
@@ -42,8 +52,14 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
             $this->error("Input file does not exist ($input_path)");
         }
 		$this->input_path = $input_path;
-
 		$this->input_handle = fopen($input_path, 'r');
+
+		if (empty($output_path)) {
+			$output_path = preg_replace('/\.[^.]{2,4}$/i', '', $input_path);
+			$output_path.= '.typ';
+		}
+		$this->output_path = $output_path;
+		$this->output_handle = fopen($output_path, 'w');
 	}
 
 	protected function _shutdown($arglist) {
