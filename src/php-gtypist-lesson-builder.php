@@ -19,6 +19,11 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
     // Update URL
 	// public $update_version_url = "https://raw.githubusercontent.com/chrisputnam9/php-gtypist-lesson-builder/master/readme.md";
 
+	public function __construct() {
+		parent::__construct();
+		$this->init_file_output_helper();
+	}
+
     protected $___create = [
         "Create a GNU Typist lesson from a text file",
         ["Path to text file to use as input", "string"],
@@ -39,6 +44,8 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 		$this->output(" - input: $this->input_path");
 		$this->output(" - title: $title");
 		$this->output(" - output: $this->output_path");
+
+		$this->file_output_comment_header($title);
     }
 
 	// Manage input and output files
@@ -61,6 +68,15 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 		$this->output_path = $output_path;
 		$this->output_handle = fopen($output_path, 'w');
 	}
+	public function get_output_handle() {
+		return $this->output_handle;
+	}
+
+	// Output Helper - just to separate out methds
+	private $file_output_helper = null;
+	private function init_file_output_helper() {
+		$this->file_output_helper = new PGLB_File_Output_Helper($this);
+	}
 
 	protected function _shutdown($arglist) {
 
@@ -72,6 +88,16 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 			fclose($this->output_handle);
 		}
 
+	}
+
+	// Run helpers automatically
+	public function __call($method, $arguments)
+	{
+		if ( 0 === strpos($method, 'file_output_' ) ) {
+			return call_user_func_array([$this->file_output_helper, $method], $arguments);
+		}
+
+		throw new Exception("Invalid method '$method'");
 	}
 }
 

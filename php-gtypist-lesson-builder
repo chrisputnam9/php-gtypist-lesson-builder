@@ -26,6 +26,7 @@ if (!is_file(CONSOLE_ABSTRACT_PATH))
 
 # Paths to other includes
 $src_includes = array(
+    __DIR__ . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'pglb_file_output_helper.php',
     __DIR__ . DIRECTORY_SEPARATOR . 'src' . DIRECTORY_SEPARATOR . 'php-gtypist-lesson-builder.php',
 );
 
