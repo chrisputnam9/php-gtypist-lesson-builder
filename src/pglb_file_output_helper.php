@@ -1,6 +1,7 @@
 <?php
 /**
  * Output Helpers
+ *  - Reference https://www.gnu.org/software/gtypist/doc/#Script-file-commands
  */
 class PGLB_File_Output_Helper
 {
@@ -31,6 +32,16 @@ class PGLB_File_Output_Helper
 	{
 		$data = $this->pglb->stringify($data);
 		$this->file_output('# ' . $data . "\n");
+	}
+
+	public function file_output_break()
+	{
+		$this->file_output("\n");
+	}
+
+	public function file_output_line($char=' ', $command='')
+	{
+		$this->file_output($char . ':' . $command . "\n");
 	}
 
 	public function file_output_comment_line($char='-', $prefix='')
