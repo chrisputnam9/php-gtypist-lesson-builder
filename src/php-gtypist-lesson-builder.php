@@ -9,6 +9,9 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
     // Name of script and directory to store config
     const SHORTNAME = 'php-gtypist-lesson-builder';
 
+	// Max Line Length for lesson text
+	const MAX_LINE_LENGTH = 50;
+
     /**
      * Callable Methods
      */
@@ -46,6 +49,23 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 		$this->output(" - output: $this->output_path");
 
 		$this->file_output_comment_header($title);
+		$this->file_output_header($title);
+		$this->file_output_break();
+
+		$next = fgets($this->input_handle);
+		$next_length = strlen($next);
+		$lines = [];
+
+		while ($next_length > self::MAX_LINE_LENGTH) {
+			$maximum_line = substr($next, 0, self::MAX_LINE_LENGTH + 1);
+			// Stop at the last full word before the max
+			$line = preg_replace('/\s\S+$/', '', $maximum_line);
+			die($line);
+
+			$next_length = strlen($next);
+		}
+		$this->file_output_instruction($title . ' - part 1 of X');
+		$this->file_output_typing_lines($lines);
     }
 
 	// Manage input and output files

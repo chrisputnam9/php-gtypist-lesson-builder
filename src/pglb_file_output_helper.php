@@ -72,7 +72,6 @@ class PGLB_File_Output_Helper
 	 * Header & Instruction Helpers
 	 */
 	public function file_output_header($content) {
-		// TODO - this could maybe center somehow... or decorate...
 		$this->file_output_line('B', $content);
 	}
 
