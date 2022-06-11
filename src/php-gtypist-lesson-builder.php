@@ -9,8 +9,9 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
     // Name of script and directory to store config
     const SHORTNAME = 'php-gtypist-lesson-builder';
 
-	// Max Line Length for lesson text
-	const MAX_LINE_LENGTH = 50;
+	// Max lengths for typing
+	const MAX_CHARS_PER_LINE = 50;
+	const MAX_CHARS_PER_SECTION = 500;
 
     /**
      * Callable Methods
@@ -52,20 +53,34 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 		$this->file_output_header($title);
 		$this->file_output_break();
 
-		$next = fgets($this->input_handle);
-		$next_length = strlen($next);
-		$lines = [];
+		$file_contents = file_get_contents($this->input_handle);
+		$all_lines = explode("\n", $file_contents);
 
-		while ($next_length > self::MAX_LINE_LENGTH) {
-			$maximum_line = substr($next, 0, self::MAX_LINE_LENGTH + 1);
-			// Stop at the last full word before the max
-			$line = preg_replace('/\s\S+$/', '', $maximum_line);
-			die($line);
+		// Group the lines into sections based on MAX_CHARS_PER_SECTION
+		$sections = [];
 
+		//todo
+
+		$number_of_sections = count($sections);
+		foreach ($sections as $s => $lines) {
+
+			// Group the section into lines based on MAX_CHARS_PER_LINE
 			$next_length = strlen($next);
+			$lines = [];
+			while ($next_length > self::MAX_CHARS_PER_LINE) {
+				$maximum_line = substr($next, 0, self::MAX_CHARS_PER_LINE + 1);
+
+				// Stop at the last full word before the max
+				$line = preg_replace('/\s\S*$/', '', $maximum_line);
+				$lines[]= $line;
+
+				$next = substr($next, 0, strlen($line));
+				$next_length = strlen($next);
+			}
+			$this->file_output_instruction($title . ' - section 1 of X');
+			$this->file_output_typing_lines($lines);
+
 		}
-		$this->file_output_instruction($title . ' - part 1 of X');
-		$this->file_output_typing_lines($lines);
     }
 
 	// Manage input and output files

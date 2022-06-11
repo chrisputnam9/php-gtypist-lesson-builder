@@ -5,6 +5,7 @@
  */
 class PGLB_File_Output_Helper
 {
+
 	protected $pglb = null;
 
 	public function __construct($pglb) {
@@ -99,6 +100,13 @@ class PGLB_File_Output_Helper
 	public function file_output_menu_goto ($menu_id) {
 		// TODO could have this check against labels to validate in some kind of 'finalize' method
 		$this->file_output_line('G', $menu_id);
+	}
+
+	/**
+	 * Lines to be actually typed
+	 * @param $lines
+	 */
+	public function file_output_typing_lines($lines=[]) {
 	}
 
 }
