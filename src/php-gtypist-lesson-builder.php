@@ -59,7 +59,45 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 		// Group the lines into sections based on MAX_CHARS_PER_SECTION
 		$sections = [];
 
-		//todo
+		$current_line = "";
+
+		while (!empty($all_lines)) {
+
+			// Get a new line if needed
+			if (empty($current_line)) $current_line = array_shift($all_lines);
+
+			$new_section = [];
+			$chars_in_section = 0;
+
+			while (true) {
+
+				// Get a new line if needed
+				if (empty($current_line)) $current_line = array_shift($all_lines);
+
+				// Check the current line length
+				$current_line_length = strlen($current_line);
+
+				if ( ($chars_in_section + $current_line_length) > self::MAX_CHARS_PER_SECTION ) {
+
+					// Find the last period in the line
+					// todo
+
+					// Failing that, find the last space
+					// todo
+
+					// Failing that, cut off exactly
+					// todo
+
+					// Cut up the line
+					// - first part goes in section
+					// - remainder is now $current_line for next section
+					// todo
+
+					// Move on to the next section
+					// todo
+				}
+			}
+		}
 
 		$number_of_sections = count($sections);
 		foreach ($sections as $s => $lines) {
