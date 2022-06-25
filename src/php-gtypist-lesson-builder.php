@@ -13,6 +13,9 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 	const MAX_CHARS_PER_LINE = 50;
 	const MAX_CHARS_PER_SECTION = 500;
 
+	// Patterns
+	const PATTERN_LOGICAL_BREAK = '[.!?"\',]';
+
     /**
      * Callable Methods
      */
@@ -53,7 +56,8 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 		$this->file_output_header($title);
 		$this->file_output_break();
 
-		$file_contents = file_get_contents($this->input_handle);
+		$file_contents = fread($this->input_handle, filesize($this->input_path));
+		$file_contents = preg_replace('/('.self::PATTERN_LOGICAL_BREAK.')  /', '\. ', $file_contents); // Make sentence ends consistent
 		$all_lines = explode("\n", $file_contents);
 
 		// Group the lines into sections based on MAX_CHARS_PER_SECTION
@@ -79,13 +83,22 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 
 				if ( ($chars_in_section + $current_line_length) > self::MAX_CHARS_PER_SECTION ) {
 
-					// Find the last period in the line
+					$cutoff_length = self::MAX_CHARS_PER_SECTION - $chars_in_section;
+					$before_max = substr($current_line, 0, $cutoff_length);
+					$after_max = substr($current_line, $cutoff_length);
+
+					// Find the last period before the max
+					$line_parts = preg_split('/('.self::PATTERN_LOGICAL_BREAK.') /', $before_max);
+					echo("<pre>".print_r($sections,true)."</pre>");
+					echo("<pre>".print_r($new_section,true)."</pre>");
+					die("<pre>".print_r($line_parts,true)."</pre>");
+
 					// todo
 
-					// Failing that, find the last space
+					// Failing that, find the last space before the max
 					// todo
 
-					// Failing that, cut off exactly
+					// Failing that, cut off exactly (odd situation)
 					// todo
 
 					// Cut up the line
