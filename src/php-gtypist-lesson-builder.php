@@ -65,7 +65,10 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 
 		$current_line = "";
 
+		// Loop until we have processed all lines
 		while (!empty($all_lines)) {
+			$this->log("\nALL LINES:");
+			$this->log($all_lines);
 
 			// Get a new line if needed
 			if (empty($current_line)) $current_line = array_shift($all_lines);
@@ -73,15 +76,25 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 			$new_section = [];
 			$chars_in_section = 0;
 
+			// Add lines until we have hit the limit of chars per typing section
 			while (true) {
 
 				// Get a new line if needed
 				if (empty($current_line)) $current_line = array_shift($all_lines);
 
+				$this->log("\nCURRENT LINE:");
+				$this->log($current_line);
+
 				// Check the current line length
 				$current_line_length = strlen($current_line);
 
-				if ( ($chars_in_section + $current_line_length) > self::MAX_CHARS_PER_SECTION ) {
+				// todo stop if we are using all lines as well
+
+				// todo add limit of lines per section as well?
+				$projected_char_length = $chars_in_section + $current_line_length;
+				if ( empty($all_lines) || $projected_char_length > self::MAX_CHARS_PER_SECTION ) {
+
+					$this->log("\nOVER CHAR LIMIT FOR SECTION: $projected_char_length projected chars");
 
 					$cutoff_length = self::MAX_CHARS_PER_SECTION - $chars_in_section;
 					$before_max = substr($current_line, 0, $cutoff_length);
@@ -107,9 +120,17 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 					// todo
 
 					// Move on to the next section
-					// todo
+					break;
+
+				} else {
+					// Otherwise, we're good to add the line into our section
+					$new_section[] = $current_line;
+					$chars_in_section+= $current_line_length;
 				}
 			}
+
+			$sections[]= $new_section;
+			$new_section = [];
 		}
 
 		$number_of_sections = count($sections);
@@ -177,7 +198,7 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 	}
 
 	// Run helpers automatically
-	public function __call($method, $arguments)
+	public function __call(string $method, array $arguments = []): mixed
 	{
 		if ( 0 === strpos($method, 'file_output_' ) ) {
 			return call_user_func_array([$this->file_output_helper, $method], $arguments);
