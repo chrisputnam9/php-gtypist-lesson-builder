@@ -10,8 +10,8 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
     const SHORTNAME = 'php-gtypist-lesson-builder';
 
 	// Max lengths for typing
-	const MAX_CHARS_PER_LINE = 50;
-	const MAX_CHARS_PER_SECTION = 500;
+	const MAX_CHARS_PER_LINE = 100;
+	const MAX_CHARS_PER_SECTION = 600;
 
 	// Patterns
 	const PATTERN_LOGICAL_BREAK = '[.!?"\',]';
@@ -57,7 +57,7 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 		$this->file_output_break();
 
 		$file_contents = fread($this->input_handle, filesize($this->input_path));
-		$file_contents = preg_replace('/('.self::PATTERN_LOGICAL_BREAK.')  /', '\. ', $file_contents); // Make sentence ends consistent
+		$file_contents = preg_replace('/('.self::PATTERN_LOGICAL_BREAK.')  /', '$1 ', $file_contents); // Give sentence ends consistent spacing
 		$all_lines = explode("\n", $file_contents);
 
 		// Group the lines into sections based on MAX_CHARS_PER_SECTION
@@ -80,7 +80,19 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 			while (true) {
 
 				// Get a new line if needed
-				if (empty($current_line)) $current_line = array_shift($all_lines);
+				if (empty($current_line)) {
+
+					// Stop if we're out of lines
+					if (empty($all_lines)) break;
+
+					$current_line = array_shift($all_lines);
+				}
+
+				// Trim whitespace
+				$current_line = trim($current_line);
+
+				// Skip empty lines
+				if (empty($current_line)) continue;
 
 				$this->log("\nCURRENT LINE:");
 				$this->log($current_line);
@@ -88,11 +100,12 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 				// Check the current line length
 				$current_line_length = strlen($current_line);
 
-				// todo stop if we are using all lines as well
-
+				// todo check against line length limit
 				// todo add limit of lines per section as well?
+				// todo set cutoff_length here
 				$projected_char_length = $chars_in_section + $current_line_length;
-				if ( empty($all_lines) || $projected_char_length > self::MAX_CHARS_PER_SECTION ) {
+
+				if ( $projected_char_length > self::MAX_CHARS_PER_SECTION ) {
 
 					$this->log("\nOVER CHAR LIMIT FOR SECTION: $projected_char_length projected chars");
 
@@ -100,24 +113,25 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 					$before_max = substr($current_line, 0, $cutoff_length);
 					$after_max = substr($current_line, $cutoff_length);
 
-					// Find the last period before the max
-					$line_parts = preg_split('/('.self::PATTERN_LOGICAL_BREAK.') /', $before_max);
-					echo("<pre>".print_r($sections,true)."</pre>");
-					echo("<pre>".print_r($new_section,true)."</pre>");
-					die("<pre>".print_r($line_parts,true)."</pre>");
+					// Try to find the last sentence end before the max
+					if (preg_match_all('/'.self::PATTERN_LOGICAL_BREAK.' /', $before_max, $matches, PREG_OFFSET_CAPTURE)) {
+						$last_match = array_pop($matches[0]);
+						$cutoff_length = $last_match[1] + 1;
 
-					// todo
+					// Failing that, try to find the last whitespace before the max
+					} else if (preg_match_all('/\s/', $before_max, $matches, PREG_OFFSET_CAPTURE)) {
+						$last_match = array_pop($matches[0]);
+						$cutoff_length = $last_match[1] + 1;
 
-					// Failing that, find the last space before the max
-					// todo
-
-					// Failing that, cut off exactly (odd situation)
-					// todo
+					}
+					// Failing both those (an odd, unexpected situation), we will cut off exactly
 
 					// Cut up the line
 					// - first part goes in section
 					// - remainder is now $current_line for next section
-					// todo
+					$new_section[] = substr($current_line, 0, $cutoff_length);
+					$chars_in_section+= $cutoff_length;
+					$current_line = substr($current_line, $cutoff_length+1);
 
 					// Move on to the next section
 					break;
@@ -126,12 +140,15 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 					// Otherwise, we're good to add the line into our section
 					$new_section[] = $current_line;
 					$chars_in_section+= $current_line_length;
+					$current_line = "";
 				}
 			}
 
 			$sections[]= $new_section;
 			$new_section = [];
 		}
+
+		die("<pre>".print_r($sections,true)."</pre>");
 
 		$number_of_sections = count($sections);
 		foreach ($sections as $s => $lines) {
