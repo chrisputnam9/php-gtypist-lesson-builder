@@ -79,6 +79,8 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 			// Add lines until we have hit the limit of chars per typing section
 			while (true) {
 
+				// todo - LATER add limit of lines per section as well?
+
 				// Get a new line if needed
 				if (empty($current_line)) {
 
@@ -99,24 +101,38 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 
 				// Check the current line length
 				$current_line_length = strlen($current_line);
-
-				// todo check against line length limit
-				// todo add limit of lines per section as well?
-				// todo set cutoff_length here
 				$projected_char_length = $chars_in_section + $current_line_length;
-
-				if ( $projected_char_length > self::MAX_CHARS_PER_SECTION ) {
-
-					$this->log("\nOVER CHAR LIMIT FOR SECTION: $projected_char_length projected chars");
-
+				$cutoff_length = false;
+				if ($current_line_length > self::MAX_CHARS_PER_LINE) {
+					$this->log("\nOVER CHAR LIMIT FOR LINE: $current_line_length current line chars");
+					$cutoff_length = self::MAX_CHARS_PER_LINE;
+				} else if ( $projected_char_length > self::MAX_CHARS_PER_SECTION ) {
+					$this->log("\nOVER CHAR LIMIT FOR SECTION: $projected_char_length projected section chars");
 					$cutoff_length = self::MAX_CHARS_PER_SECTION - $chars_in_section;
+				}
+
+				if ( $cutoff_length !== false ) {
+
 					$before_max = substr($current_line, 0, $cutoff_length);
 					$after_max = substr($current_line, $cutoff_length);
+
+					// @TODO
+					$best_cutoff = $this->get_best_cutoff($current_line, $cutoff_length);
+
+					// If determined best to push line to next section
+					if ($best_cutoff > $cutoff_length) {
+						break; // done with this section, go to next
+					}
+
+					// Otherwise, go ahead and cut off
+					// @TODO
 
 					// Try to find the last sentence end before the max
 					if (preg_match_all('/'.self::PATTERN_LOGICAL_BREAK.' /', $before_max, $matches, PREG_OFFSET_CAPTURE)) {
 						$last_match = array_pop($matches[0]);
 						$cutoff_length = $last_match[1] + 1;
+
+					} else {
 
 					// Failing that, try to find the last whitespace before the max
 					} else if (preg_match_all('/\s/', $before_max, $matches, PREG_OFFSET_CAPTURE)) {
@@ -143,6 +159,8 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 					$current_line = "";
 				}
 			}
+
+			die("<pre>".print_r($new_section,true)."</pre>");
 
 			$sections[]= $new_section;
 			$new_section = [];
