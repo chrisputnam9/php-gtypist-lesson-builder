@@ -14,7 +14,7 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 	const MAX_CHARS_PER_SECTION = 600;
 
 	// Patterns
-	const PATTERN_LOGICAL_BREAK = '[.!?"\',]';
+	const PATTERN_LOGICAL_BREAK = '[.!?]';
 
     /**
      * Callable Methods
@@ -102,13 +102,17 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 				// Check the current line length
 				$current_line_length = strlen($current_line);
 				$projected_char_length = $chars_in_section + $current_line_length;
+
 				$cutoff_length = false;
-				if ($current_line_length > self::MAX_CHARS_PER_LINE) {
-					$this->log("\nOVER CHAR LIMIT FOR LINE: $current_line_length current line chars");
-					$cutoff_length = self::MAX_CHARS_PER_LINE;
-				} else if ( $projected_char_length > self::MAX_CHARS_PER_SECTION ) {
+				$section_cutoff = false;
+
+				if ( $projected_char_length > self::MAX_CHARS_PER_SECTION ) {
 					$this->log("\nOVER CHAR LIMIT FOR SECTION: $projected_char_length projected section chars");
 					$cutoff_length = self::MAX_CHARS_PER_SECTION - $chars_in_section;
+					$section_cutoff = true;
+				} else if ($current_line_length > self::MAX_CHARS_PER_LINE) {
+					$this->log("\nOVER CHAR LIMIT FOR LINE: $current_line_length current line chars");
+					$cutoff_length = self::MAX_CHARS_PER_LINE;
 				}
 
 				if ( $cutoff_length !== false ) {
@@ -116,8 +120,8 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 					$before_max = substr($current_line, 0, $cutoff_length);
 					$after_max = substr($current_line, $cutoff_length);
 
-					// @TODO
-					$best_cutoff = $this->get_best_cutoff($current_line, $cutoff_length);
+					// @TODO - keep working on function
+					$best_cutoff = $this->get_best_line_split($current_line, $cutoff_length, $section_cutoff);
 
 					// If determined best to push line to next section
 					if ($best_cutoff > $cutoff_length) {
@@ -125,22 +129,7 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 					}
 
 					// Otherwise, go ahead and cut off
-					// @TODO
-
-					// Try to find the last sentence end before the max
-					if (preg_match_all('/'.self::PATTERN_LOGICAL_BREAK.' /', $before_max, $matches, PREG_OFFSET_CAPTURE)) {
-						$last_match = array_pop($matches[0]);
-						$cutoff_length = $last_match[1] + 1;
-
-					} else {
-
-					// Failing that, try to find the last whitespace before the max
-					} else if (preg_match_all('/\s/', $before_max, $matches, PREG_OFFSET_CAPTURE)) {
-						$last_match = array_pop($matches[0]);
-						$cutoff_length = $last_match[1] + 1;
-
-					}
-					// Failing both those (an odd, unexpected situation), we will cut off exactly
+					// @TODO2
 
 					// Cut up the line
 					// - first part goes in section
@@ -189,6 +178,48 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 
 		}
     }
+
+	/**
+	 * Figure out the best place to cut a line of text, based on:
+	 *  - The maximum length for the line to fit in the current section ($cutoff_length)
+	 *  - The known maximum line length (MAX_CHARS_PER_LINE)
+	 *
+	 * Try to cut off at a logical break - eg. punctuation when possible
+	 *
+	 * Especially try not to break between sections outside of a logical break (punctuation)
+	 *
+	 * @return array [$before, $after] text split into two sections
+	 */
+	private function get_best_line_split($current_line, $cutoff_length, $section_cutoff) {
+
+		// Find all logical breaks in the line
+		preg_match_all('/'.self::PATTERN_LOGICAL_BREAK.' /', $current_line, $matches, PREG_OFFSET_CAPTURE);
+
+		// @TODO
+		// 1. Ideally cut off at punctuation
+		//    - If no punctuation before cutoff_length, and this is a section_cutoff, look for punctuation AFTER cutoff_length but BEFORE section_max
+		//		- If found, then that is our ideal cutoff
+		//		- If NOT found, then we'll hav to break up the line non-ideally anyway - may as well start
+		// 2. Second-best - cut off at semi-logical break - '";,-)]
+		//    - Same logic as #1
+		// 2. Third-best - cut off at whitespace
+		//    - Same logic as #1
+		// 2. Final option - cut off 3 before exact length, and add on ...
+
+		die("<pre>".print_r($matches,true)."</pre>");
+
+		if (false) {
+			$last_match = array_pop($matches[0]);
+			$cutoff_length = $last_match[1] + 1;
+
+		// Failing that, try to find the last whitespace before the max
+		} else if (preg_match_all('/\s/', $before_max, $matches, PREG_OFFSET_CAPTURE)) {
+			$last_match = array_pop($matches[0]);
+			$cutoff_length = $last_match[1] + 1;
+
+		}
+		// Failing both those (an odd, unexpected situation), we will cut off exactly
+	}
 
 	// Manage input and output files
 	private $input_handle = null;
