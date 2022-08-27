@@ -14,7 +14,11 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 	const MAX_CHARS_PER_SECTION = 600;
 
 	// Patterns
-	const PATTERN_LOGICAL_BREAK = '[.!?]';
+	const PATTERN_LOGICAL_BREAKS = [
+		'[.!?]',
+		'[\'":;,-)\]]}',
+		'\s',
+	];
 
     /**
      * Callable Methods
@@ -57,7 +61,7 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 		$this->file_output_break();
 
 		$file_contents = fread($this->input_handle, filesize($this->input_path));
-		$file_contents = preg_replace('/('.self::PATTERN_LOGICAL_BREAK.')  /', '$1 ', $file_contents); // Give sentence ends consistent spacing
+		$file_contents = preg_replace('/('.self::PATTERN_LOGICAL_BREAKS[0].')  /', '$1 ', $file_contents); // Give sentence ends consistent spacing
 		$all_lines = explode("\n", $file_contents);
 
 		// Group the lines into sections based on MAX_CHARS_PER_SECTION
@@ -192,33 +196,54 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 	 */
 	private function get_best_line_split($current_line, $cutoff_length, $section_cutoff) {
 
-		// Find all logical breaks in the line
-		preg_match_all('/'.self::PATTERN_LOGICAL_BREAK.' /', $current_line, $matches, PREG_OFFSET_CAPTURE);
+		$this->log("Determining best cutoff length before $cutoff_length" . ($section_cutoff ? ' - section cutoff' : ' - line cutoff'));
+
+		$section_cutoff_length = $section_cutoff ? $cutoff_length : self::MAX_CHARS_PER_SECTION;
+
+		$best_cutoff = null;
+		$best_section_cutoff = null;
+
+		foreach (self::PATTERN_LOGICAL_BREAKS as $pattern) {
+
+			// Find all logical breaks in the line
+			$match_found = preg_match_all('/'.$pattern.' /', $current_line, $matches, PREG_OFFSET_CAPTURE);
+
+			if ( ! $match_found) continue;
+
+			foreach ($matches[0] as $match) {
+				$match_index = $match[1];
+
+				// Ideally cut off before our requested length
+				if ($match_index < $cutoff_length) {
+					$best_cutoff = $match_index;
+				}
+
+				// Second best cutoff based on section max
+				if ($match_index < $section_cutoff_length) {
+					$best_section_cutoff = $match_index;
+				}
+			}
+
+			// Resort to second-best by section max
+			if (empty($best_cutoff)) $best_cutoff = $best_section_cutoff;
+
+			print_r($matches);
+
+			// Quit if we find a good cutoff
+			if (!empty($best_cutoff)) {
+				// Add 1 character for the punctuation
+				$best_cutoff++;
+				break;
+			}
+		}
 
 		// @TODO
-		// 1. Ideally cut off at punctuation
-		//    - If no punctuation before cutoff_length, and this is a section_cutoff, look for punctuation AFTER cutoff_length but BEFORE section_max
-		//		- If found, then that is our ideal cutoff
-		//		- If NOT found, then we'll hav to break up the line non-ideally anyway - may as well start
-		// 2. Second-best - cut off at semi-logical break - '";,-)]
-		//    - Same logic as #1
-		// 2. Third-best - cut off at whitespace
-		//    - Same logic as #1
-		// 2. Final option - cut off 3 before exact length, and add on ...
+		// Final option - cut off 3 before exact length, and add on ellipses
 
-		die("<pre>".print_r($matches,true)."</pre>");
+		$this->log("Best cutoff found: $best_cutoff");
+		die;
 
-		if (false) {
-			$last_match = array_pop($matches[0]);
-			$cutoff_length = $last_match[1] + 1;
-
-		// Failing that, try to find the last whitespace before the max
-		} else if (preg_match_all('/\s/', $before_max, $matches, PREG_OFFSET_CAPTURE)) {
-			$last_match = array_pop($matches[0]);
-			$cutoff_length = $last_match[1] + 1;
-
-		}
-		// Failing both those (an odd, unexpected situation), we will cut off exactly
+		return $best_cutoff;
 	}
 
 	// Manage input and output files
