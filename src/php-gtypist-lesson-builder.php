@@ -12,12 +12,13 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 	// Max lengths for typing
 	const MAX_CHARS_PER_LINE = 100;
 	const MAX_CHARS_PER_SECTION = 600;
+	// @TODO ADD MAX LINES PER SECTION & LOGIC
 
 	// Patterns
 	const PATTERN_LOGICAL_BREAKS = [
-		'[.!?]',
-		'[\'":;,-)\]]}',
-		'\s',
+		'/([.!?])/',
+		'/([\'":;,-)\]]})/',
+		'/(\s)/',
 	];
 
     /**
@@ -61,7 +62,7 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 		$this->file_output_break();
 
 		$file_contents = fread($this->input_handle, filesize($this->input_path));
-		$file_contents = preg_replace('/('.self::PATTERN_LOGICAL_BREAKS[0].')  /', '$1 ', $file_contents); // Give sentence ends consistent spacing
+		$file_contents = preg_replace(self::PATTERN_LOGICAL_BREAKS[0], '$1 ', $file_contents); // Give sentence ends consistent spacing
 		$all_lines = explode("\n", $file_contents);
 
 		// Group the lines into sections based on MAX_CHARS_PER_SECTION
@@ -82,8 +83,6 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 
 			// Add lines until we have hit the limit of chars per typing section
 			while (true) {
-
-				// todo - LATER add limit of lines per section as well?
 
 				// Get a new line if needed
 				if (empty($current_line)) {
@@ -124,26 +123,28 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 					$before_max = substr($current_line, 0, $cutoff_length);
 					$after_max = substr($current_line, $cutoff_length);
 
-					// @TODO - keep working on function
-					$best_cutoff = $this->get_best_line_split($current_line, $cutoff_length, $section_cutoff);
+					$line_split = $this->get_best_line_split($current_line, $cutoff_length, $section_cutoff);
+
+					$this->log("Best Line Split Found:");
+					$this->log($line_split);
+					$split1_len = strlen($line_split[0]);
 
 					// If determined best to push line to next section
-					if ($best_cutoff > $cutoff_length) {
-						break; // done with this section, go to next
+					if ($split1_len > $cutoff_length) {
+						break; // done with this section, go to next with current line
 					}
-
-					// Otherwise, go ahead and cut off
-					// @TODO2
 
 					// Cut up the line
 					// - first part goes in section
 					// - remainder is now $current_line for next section
-					$new_section[] = substr($current_line, 0, $cutoff_length);
-					$chars_in_section+= $cutoff_length;
-					$current_line = substr($current_line, $cutoff_length+1);
+					$new_section[] = $line_split[0];
+					$chars_in_section+= $split1_len;
+					$current_line = $line_split[1];
 
 					// Move on to the next section
-					break;
+					if ($section_cutoff) {
+						break;
+					}
 
 				} else {
 					// Otherwise, we're good to add the line into our section
@@ -153,13 +154,16 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 				}
 			}
 
-			die("<pre>".print_r($new_section,true)."</pre>");
-
 			$sections[]= $new_section;
 			$new_section = [];
+
+			$this->log($sections);
+			die;
+			// @TODO keeps looping infinitely...?
 		}
 
-		die("<pre>".print_r($sections,true)."</pre>");
+		$this->log($sections);
+		die;
 
 		$number_of_sections = count($sections);
 		foreach ($sections as $s => $lines) {
@@ -206,7 +210,7 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 		foreach (self::PATTERN_LOGICAL_BREAKS as $pattern) {
 
 			// Find all logical breaks in the line
-			$match_found = preg_match_all('/'.$pattern.' /', $current_line, $matches, PREG_OFFSET_CAPTURE);
+			$match_found = preg_match_all($pattern, $current_line, $matches, PREG_OFFSET_CAPTURE);
 
 			if ( ! $match_found) continue;
 
@@ -214,12 +218,12 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 				$match_index = $match[1];
 
 				// Ideally cut off before our requested length
-				if ($match_index < $cutoff_length) {
+				if ($match_index < $cutoff_length) { // < because we need to include the character itself
 					$best_cutoff = $match_index;
 				}
 
-				// Second best cutoff based on section max
-				if ($match_index < $section_cutoff_length) {
+				// Second-best cutoff based on section max
+				if ($match_index < $section_cutoff_length) { // < because we need to include the character itself
 					$best_section_cutoff = $match_index;
 				}
 			}
@@ -227,23 +231,30 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 			// Resort to second-best by section max
 			if (empty($best_cutoff)) $best_cutoff = $best_section_cutoff;
 
-			print_r($matches);
-
-			// Quit if we find a good cutoff
-			if (!empty($best_cutoff)) {
-				// Add 1 character for the punctuation
+			// Quit if we find a good cutoff for the SECTION
+			// - otherwise keep looking for a better LINE cutoff
+			if ($section_cutoff && !empty($best_cutoff)) {
+				// Add 1 character for the character itself (punctuation/space)
 				$best_cutoff++;
+
+				$this->log("Best cutoff found based on '$pattern': $best_cutoff");
+
 				break;
 			}
 		}
 
-		// @TODO
-		// Final option - cut off 3 before exact length, and add on ellipses
+		$ellipses = '';
 
-		$this->log("Best cutoff found: $best_cutoff");
-		die;
+		// No nice cutoff found - we'll cut 3 chars from max length and add ellipses
+		if (is_null($best_cutoff)) {
+			$best_cutoff = $cutoff_length - 3;
+			$ellipses = '...';
+		}
 
-		return $best_cutoff;
+		return [
+			substr($current_line, 0, $best_cutoff) . $ellipses,
+			substr($current_line, $best_cutoff),
+		];
 	}
 
 	// Manage input and output files
