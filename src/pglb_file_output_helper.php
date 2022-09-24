@@ -107,6 +107,14 @@ class PGLB_File_Output_Helper
 	 * @param $lines
 	 */
 	public function file_output_typing_lines($lines=[]) {
+		$first = true;
+		foreach ($lines as $line) {
+			$this->file_output_line(
+				($first ? 'S' : ' '),
+				$line
+			);
+			$first = false;
+		}
 	}
 
 }
