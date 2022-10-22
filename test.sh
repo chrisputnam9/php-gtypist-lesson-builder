@@ -7,4 +7,4 @@ clear
 
 cat "$chapter1_path.typ"
 
-#gtypist "$chapter1_path.typ"
+gtypist "$chapter1_path.typ"
