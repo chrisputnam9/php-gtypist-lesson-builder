@@ -11,13 +11,12 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 
 	// Max lengths for typing
 	const MAX_CHARS_PER_LINE = 100;
-	const MAX_LINES_PER_SECTION = 10;
-	// @TODO ADD MAX LINES PER SECTION & LOGIC
+	const MIN_LINES_PER_SECTION = 10;
 
 	// Patterns
 	const PATTERN_LOGICAL_BREAKS = [
 		'/([.!?]\s)/',
-		'/([\'":;,-)\]}]\s)/',
+		'/([\'":;,\-)\]}]\s)/',
 		'/(\s)/',
 	];
 
@@ -63,15 +62,15 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 
 		$file_contents = fread($this->input_handle, filesize($this->input_path));
 
-		// Give sentence ends consistent spacing
-		$file_contents = preg_replace(self::PATTERN_LOGICAL_BREAKS[0], '$1 ', $file_contents);
-
 		// Make sure characters are all easily typeable
 		$file_contents = str_replace('“', '"', $file_contents);
 		$file_contents = str_replace('”', '"', $file_contents);
 		$file_contents = str_replace('‘', '\'', $file_contents);
 		$file_contents = str_replace('’', '\'', $file_contents);
-		$file_contents = str_replace('—', '"', $file_contents);
+		$file_contents = str_replace('—', ' - ', $file_contents);
+
+		// Enforce consistent spacing
+		$file_contents = preg_replace('/ {2,}/', ' ', $file_contents);
 
 		$all_lines = explode("\n", $file_contents);
 
@@ -93,12 +92,13 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 			// Add lines until we have hit the limit of lines per section
 			while (true) {
 
-				if (count($new_section) >= static::MAX_LINES_PER_SECTION) {
-					break;
-				}
-
 				// Get a new line if needed
 				if (empty($current_line)) {
+
+					// Enough lines for the section already? Move to next
+					if (count($new_section) >= static::MIN_LINES_PER_SECTION) {
+						break;
+					}
 
 					// Stop if we're out of lines
 					if (empty($all_lines)) break;
@@ -196,21 +196,18 @@ class Php_Gtypist_Lesson_Builder extends Console_Abstract
 
 			}
 
-			// Quit if we find a good cutoff
-			if (!empty($best_cutoff)) {
-				// Add 1 character for the character itself (punctuation/space)
-				$best_cutoff++;
-
-				$this->log("Best cutoff found based on '$pattern': $best_cutoff");
-
-				break;
-			}
 		}
 
 		$ellipses = '';
 
+		if (!empty($best_cutoff)) {
+			// Add 1 character for the character itself (punctuation/space)
+			$best_cutoff++;
+
+			$this->log("Best cutoff found based on '$pattern': $best_cutoff");
+
 		// No nice cutoff found - we'll cut 3 chars from max length and add ellipses
-		if (is_null($best_cutoff)) {
+		} else {
 			$best_cutoff = $cutoff_length - 3;
 			$ellipses = '...';
 		}
